@@ -19,3 +19,14 @@ func darkModeEnabled() -> Bool {
     return UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
 }
 
+func darkModeChanged() {
+}
+
+DistributedNotificationCenter.default.addObserver(
+    forName: Notification.Name("AppleInterfaceThemeChangedNotification"), 
+    object: nil, 
+    queue: nil) { (notification) in
+        darkModeChanged()
+}
+
+NSApplication.shared.run()
