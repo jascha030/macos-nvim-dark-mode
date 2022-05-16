@@ -22,7 +22,10 @@ func darkModeEnabled() -> Bool {
 func darkModeChanged() {
     var env = ProcessInfo.processInfo.environment
     env["MACOS_CURRENT_COLOR_SCHEME"] = darkModeEnabled() ? "dark" : "light"
+}
 
+func sendSignal(pid: Int32, signal: Int32 = 10) -> Int32 {
+    return shell("kill", "-\(signal)", pid)
 }
 
 DistributedNotificationCenter.default.addObserver(
