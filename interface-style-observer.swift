@@ -14,3 +14,8 @@ func shell(_ args: String...) -> Int32 {
     
     return task.terminationStatus
 }
+
+func darkModeEnabled() -> Bool {
+    return UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
+}
+
