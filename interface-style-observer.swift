@@ -20,6 +20,9 @@ func darkModeEnabled() -> Bool {
 }
 
 func darkModeChanged() {
+    var env = ProcessInfo.processInfo.environment
+    env["MACOS_CURRENT_COLOR_SCHEME"] = darkModeEnabled() ? "dark" : "light"
+
 }
 
 DistributedNotificationCenter.default.addObserver(
