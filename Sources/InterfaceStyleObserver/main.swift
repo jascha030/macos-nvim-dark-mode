@@ -1,3 +1,6 @@
+import Foundation
+import AppKit
+
 @discardableResult
 func shell(_ args: String...) -> Int32 {
     let task = Process()
@@ -11,7 +14,8 @@ func shell(_ args: String...) -> Int32 {
     return task.terminationStatus
 }
 
-func shellOutput(_ args: String...) -> String {
+@available(macOS 10.15.4, *)
+func shellOutput(_ args: String...) throws -> String {
     let task = Process()
     let pipe = Pipe()
 
@@ -24,7 +28,7 @@ func shellOutput(_ args: String...) -> String {
     task.standardInput = nil
     task.launch()
     
-    let data = pipe.fileHandleForReading.readToEnd()
+    let data = (try pipe.fileHandleForReading.readToEnd())!
     let output = String(data: data, encoding: .utf8)!
 
     return output 
@@ -42,8 +46,10 @@ func darkModeChanged() {
 }
 
 func sendSignal(pid: Int32, signal: Int32 = 10) -> Int32 {
-    return shell("kill", "-\(signal)", pid)
+    return shell("kill", "-\(signal)", String(pid))
 }
+
+
 
 DistributedNotificationCenter.default.addObserver(
     forName: Notification.Name("AppleInterfaceThemeChangedNotification"), 
@@ -53,4 +59,3 @@ DistributedNotificationCenter.default.addObserver(
 }
 
 NSApplication.shared.run()
-
