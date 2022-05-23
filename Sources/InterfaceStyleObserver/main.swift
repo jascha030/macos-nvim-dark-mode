@@ -38,24 +38,38 @@ func darkModeEnabled() -> Bool {
     return UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
 }
 
-func darkModeChanged() {
+@discardableResult
+@available(macOS 10.15.4, *)
+func darkModeChanged() -> Int32 {
     var env = ProcessInfo.processInfo.environment
     env["MACOS_CURRENT_COLOR_SCHEME"] = darkModeEnabled() ? "dark" : "light"
-
-
+    
+    do {
+        let output = try shellOutput("pgrep", "nvim")
+        
+        guard let pid = Int32(output) else {
+            return 1
+        }
+        
+        return sendSignal(pid: pid)
+    } catch {
+        return 1
+    }
 }
 
 func sendSignal(pid: Int32, signal: Int32 = 10) -> Int32 {
     return shell("kill", "-\(signal)", String(pid))
 }
 
-
-
 DistributedNotificationCenter.default.addObserver(
     forName: Notification.Name("AppleInterfaceThemeChangedNotification"), 
     object: nil, 
     queue: nil) { (notification) in
-        darkModeChanged()
+        if #available(macOS 10.15.4, *) {
+            darkModeChanged()
+        } else {
+            exit(1)
+        }
 }
 
 NSApplication.shared.run()
