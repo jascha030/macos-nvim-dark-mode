@@ -1,36 +1,21 @@
 import XCTest
 import class Foundation.Bundle
 
+@testable import InterfaceStyleObserver
 final class InterfaceStyleObserverTests: XCTestCase {
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-
-        // Some of the APIs that we use below are available in macOS 10.13 and above.
+    func testShell() throws {
         guard #available(macOS 10.13, *) else {
             return
         }
-
-        // Mac Catalyst won't have `Process`, but it is supported for executables.
-        #if !targetEnvironment(macCatalyst)
-
-        let fooBinary = productsDirectory.appendingPathComponent("InterfaceStyleObserver")
-
-        let process = Process()
-        process.executableURL = fooBinary
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)
-
-        XCTAssertEqual(output, "Hello, world!\n")
-        #endif
+        
+        let test = (try shell("/usr/bin/env", ["echo", "test"]).0)!
+        
+        XCTAssertEqual("test\n", test)
+        
+        let cmd = try shell("/usr/bin/env", ["pgrep", "Xcode"])
+        
+        XCTAssertNotNil((cmd.0)!)
+        XCTAssertEqual(cmd.1, 0)
     }
 
     /// Returns path to the built products directory.
