@@ -27,28 +27,31 @@ func darkModeEnabled() -> Bool {
     return UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
 }
 
-@discardableResult
 @available(macOS 10.13, *)
-func darkModeChanged() -> Int32 {
+func darkModeChanged() throws {
     var env = ProcessInfo.processInfo.environment
     env["MACOS_CURRENT_COLOR_SCHEME"] = darkModeEnabled() ? "dark" : "light"
     
     do {
-        let output = (try shell("/usr/bin/env zsh", ["pgrep", "nvim"]).0)!
+        let output = (try shell("/usr/bin/env", ["pgrep", "nvim"]).0)!
         
-        guard let pid = Int32(output) else {
-            return 1
+        let newlineChars = NSCharacterSet.newlines
+        let lineArray = output.components(separatedBy: newlineChars)
+        
+        for line in lineArray {
+            guard let pid = Int32(line) else {
+                return
+            }
+            
+            try sendSignal(pid: pid)
         }
-        
-        return try sendSignal(pid: pid)
-    } catch {
-        return 1
     }
 }
 
+@discardableResult
 @available(macOS 10.13, *)
-func sendSignal(pid: Int32, signal: Int32 = 10) throws -> Int32 {
-    return try shell("/bin/zsh", ["kill", "-\(signal)", String(pid)]).1
+func sendSignal(pid: Int32) throws -> Int32 {
+    return try shell("/usr/bin/env", ["kill", "-SIGUSR1", String(pid)]).1
 }
 
 DistributedNotificationCenter.default.addObserver(
@@ -56,7 +59,11 @@ DistributedNotificationCenter.default.addObserver(
     object: nil, 
     queue: nil) { (notification) in
         if #available(macOS 10.13, *) {
-            darkModeChanged()
+            do {
+                try darkModeChanged()
+            } catch {
+                print("Error")
+            }
         } else {
             exit(1)
         }
