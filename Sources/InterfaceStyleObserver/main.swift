@@ -1,37 +1,26 @@
 import Foundation
 import AppKit
 
-@discardableResult
-func shell(_ args: String...) -> Int32 {
-    let task = Process()
-
-    task.launchPath = "/usr/bin/env"
-    task.arguments = args
-    
-    task.launch()
-    task.waitUntilExit()
-   
-    return task.terminationStatus
-}
-
-@available(macOS 10.15.4, *)
-func shellOutput(_ args: String...) throws -> String {
+@available(macOS 10.13, *)
+func shell(_ launchPath: String, _ arguments: [String] = []) throws -> (String?, Int32) {
     let task = Process()
     let pipe = Pipe()
 
     task.standardOutput = pipe 
     task.standardError = pipe 
     
-    task.launchPath = "/usr/bin/env"
-    task.arguments = args
-    
+    task.arguments = arguments
+    task.executableURL = URL(fileURLWithPath: launchPath)
     task.standardInput = nil
-    task.launch()
     
-    let data = (try pipe.fileHandleForReading.readToEnd())!
-    let output = String(data: data, encoding: .utf8)!
+    try task.run()
 
-    return output 
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8)!
+    
+    task.waitUntilExit()
+
+    return (output, task.terminationStatus) 
 }
 
 func darkModeEnabled() -> Bool {
@@ -39,33 +28,34 @@ func darkModeEnabled() -> Bool {
 }
 
 @discardableResult
-@available(macOS 10.15.4, *)
+@available(macOS 10.13, *)
 func darkModeChanged() -> Int32 {
     var env = ProcessInfo.processInfo.environment
     env["MACOS_CURRENT_COLOR_SCHEME"] = darkModeEnabled() ? "dark" : "light"
     
     do {
-        let output = try shellOutput("pgrep", "nvim")
+        let output = (try shell("/usr/bin/env zsh", ["pgrep", "nvim"]).0)!
         
         guard let pid = Int32(output) else {
             return 1
         }
         
-        return sendSignal(pid: pid)
+        return try sendSignal(pid: pid)
     } catch {
         return 1
     }
 }
 
-func sendSignal(pid: Int32, signal: Int32 = 10) -> Int32 {
-    return shell("kill", "-\(signal)", String(pid))
+@available(macOS 10.13, *)
+func sendSignal(pid: Int32, signal: Int32 = 10) throws -> Int32 {
+    return try shell("/bin/zsh", ["kill", "-\(signal)", String(pid)]).1
 }
 
 DistributedNotificationCenter.default.addObserver(
     forName: Notification.Name("AppleInterfaceThemeChangedNotification"), 
     object: nil, 
     queue: nil) { (notification) in
-        if #available(macOS 10.15.4, *) {
+        if #available(macOS 10.13, *) {
             darkModeChanged()
         } else {
             exit(1)
